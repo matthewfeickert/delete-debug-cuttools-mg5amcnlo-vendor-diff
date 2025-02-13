@@ -2,13 +2,27 @@ PRECISION= QP
 #PRECISION= MP
 CTS_VERSION = v1.9.3
 SRC = ./src
-EXE = 
-FC  = gfortran
-FFLAGS = -fno-automatic -O2 -funroll-all-loops  
-#FFLAGS = -fno-automatic -Ofast -funroll-all-loops  
-BLD = includects
 CTS_DIR = cuttools_$(CTS_VERSION)
 CTS_TAR = $(CTS_DIR).tar.gz
+
+# Check for ../make_opts
+ifeq ($(wildcard ../make_opts), ../make_opts)
+  include ../make_opts
+else
+  FFLAGS = 
+  FC=gfortran
+endif
+
+# These flags are vital for CT, so we enforce them here
+FFLAGS += -fPIC -fno-automatic -O2 -funroll-all-loops
+#FFLAGS += -fno-automatic -Ofast -funroll-all-loops  
+
+# make sure no bound checks is used as it crashes avholo because of string message too long
+tmp := $(FFLAGS)
+FFLAGS = $(tmp:-fbounds-check=)
+
+EXE = 
+BLD = includects
 
 ARGS = \
   EXE="$(EXE)" \
@@ -46,6 +60,9 @@ clean$(BLD): default
 
 default: force
 	cd $(BLD) && $(MAKE) $(ARGS) $@
+	$(FC) -dumpversion > $(BLD)/compiler_version.log
+# Below was an overkill
+#	$(FC) --version | egrep -o "\d*\.\d*?(\.\d*)" | sed -n 1p > $(BLD)/compiler_version.log
 
 force: $(BLD)/version.h
 
